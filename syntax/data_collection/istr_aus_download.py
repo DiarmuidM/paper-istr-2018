@@ -1,5 +1,6 @@
 # Script to search and download Charity Register from ACNC API and annual returns submitted to ACNC 2013-2016
-# Diarmuid McDonnell
+
+# Diarmuid McDonnell, Alasdair Rutherford
 # Created: 26 February 2018
 # Last edited: captured in Github file history
 
@@ -28,7 +29,7 @@ datapath = 'C:/Users/mcdonndz-local/Desktop/data/paper-istr-2018/data_raw/'
 
 request = urllib.request.urlopen('https://data.gov.au/api/3/action/datastore_search?resource_id=eb1e6be4-5b13-4feb-b28e-388bf7c26f93&limit=100000') # Search for all charities
 print(request.status, request.headers)
-# I need to capture the last modified information so I can name the files/decide when to download etc.
+# Capture the last modified information so I can name the files/decide when to download etc.
 '''
 metadata = request.headers
 print(type(metadata))
@@ -46,8 +47,8 @@ data = json.loads(response)
 	File structure: dictionary with 3 items, one of which ('result') is a dictionary with a list for some of its values.
 	'result' contains variable names ['id'] in the 'fields' key, and observations in 'records' (list with one element: a dictionary).
 '''
-outputfilepath_csv = datapath + ddate + '/' + 'auscharities_' + ddate + '.csv'
-outputfilepath_json = datapath + ddate + '/' + 'auscharities_' + ddate + '.json'
+outputfilepath_csv = datapath + '/' + 'aus_charityregister' + '.csv'
+outputfilepath_json = datapath + '/' + 'aus_charityregister' + '.json'
 inputfilepath = outputfilepath_json
 print(outputfilepath_csv)
 print(outputfilepath_json)
@@ -108,7 +109,7 @@ expldatasets = [url2013, url2014, url2015, url2016]
 groupdatasets = [url2014, url2015, url2016] # No group reports for 2013
 
 # Download data
-'''
+
 for dataset in aisdatasets:
 
 	r = requests.get(dataset, allow_redirects=True)
@@ -129,8 +130,12 @@ for dataset in aisdatasets:
 
 	#print(r.content)
 	z = zipfile.ZipFile(io.BytesIO(r.content))
-	z.extractall(datapath + ddate)
-'''
+	z.extractall(datapath)
+
+print('                                                       ')
+print('                                                       ')
+print('Successfully downloaded annual return files for 2013-2016')
+
 
 # Download group reports #
 
@@ -157,20 +162,23 @@ for dataset in groupdatasets:
 
 	# Write content to xlsx
 
-	xlsxpath = datapath + ddate + '/' + 'ais_group_' + str(year) + '.xlsx'
+	xlsxpath = datapath + '/' + 'ais_group_' + str(year) + '.xls'
 
 	outxlsx = open(xlsxpath, 'wb')
 	outxlsx.write(r.content)
 	outxlsx.close()
 	year +=1
 
-	# 2015 is not working
-'''
+print('                                                       ')
+print('                                                       ')
+print('Successfully downloaded group annual return files for 2014-2016')
+
+
 # Download ancillary files #
 
-year = 2013 # Define a counter for naming the files
+year = 2014 # Define a counter for naming the files
 
-for dataset in expldatasets:
+for dataset in expldatasets[1:]:
 
 	r = requests.get(dataset, allow_redirects=True)
 	soup = BeautifulSoup(r.text, 'html.parser')
@@ -190,12 +198,31 @@ for dataset in expldatasets:
 
 	# Write content to pdf
 
-	pdfpath = datapath + ddate + '/' + 'ais_' + str(year) + '_explanatory-notes.pdf'
+	pdfpath = datapath + '/' + 'ais_' + 'explanatory-notes_' + str(year) + '.pdf'
 
 	outpdf = open(pdfpath, 'wb')
 	outpdf.write(r.content)
 	outpdf.close()
 	year +=1
 
-# 2013 not working because it is a .docx
-'''
+
+# Download 2013 separately as it is not a pdf
+
+year = 2013 # Define a counter for naming the files
+
+exp2013 = 'https://data.gov.au/dataset/cc9d8524-39d8-4374-84b9-20e9d1070e82/resource/10762350-2ba1-41e4-a8f0-635144231d25/download/20140903datagov2013aisexplanatorynotes.docx'
+
+r = requests.get(exp2013, allow_redirects=True)
+print(r.status_code, r.ok, r.headers)
+
+# Write content to pdf
+
+docpath = datapath + '/' + 'ais_' + 'explanatory-notes_' + str(year) + '.docx'
+
+outdoc = open(docpath, 'wb')
+outdoc.write(r.content)
+outdoc.close()
+
+print('                                                       ')
+print('                                                       ')
+print('Successfully downloaded explanatory notes for 2013-2016')	

@@ -1,11 +1,13 @@
 To do list (updated 25/04/2018):
 
+- In istr_master.py, write the download date and other meta data to a .txt file.
 - Add 'istr_' prefix to syntax files.[DONE]
-- Convert project folder to Github repo.
+- Convert project folder to Github repo. [DONE]
 - Update syntax files so the data are downloaded to the correct folder: .\paper-istr-2018\data_raw
-- Collate download code in as few scripts as possible i.e. istr_ew_download.py, istr_nz_download.py, istr_aus_download.py;
+- Collate download code in as few scripts as possible i.e. istr_ew_download.py [DONE], istr_nz_download.py, istr_aus_download.py [DONE];
 	o these can then be called from the istr_master_download.py script.
 	o make sure nz files are in the correct folder, named correctly, and are called in the correct order.
 - Synthesise data analysis scripts from each country in one file.
 - Explore more independent variables that can be harmonised across the 3/4 countries.
-- Copy working version of aus download to 'aus_charity_data' repo.
+- Copy working version of aus download to 'aus_charity_data' repo. [DONE]
+- Amend istr_canada_download.py and istr_ew_download.py so that the original download folders are deleted.

@@ -1,6 +1,6 @@
 ## Python script to download monthly snapshot of England and Wales Register of Charities and SIR data:
 
-# Diarmuid McDonnell
+# Diarmuid McDonnell, Alasdair Rutherford
 # Created: 28 March 2018
 # Last edited: captured in Github file history
 
@@ -20,16 +20,10 @@ from downloaddate_function import downloaddate
 ddate = downloaddate()
 
 projpath = 'C:/Users/mcdonndz-local/Desktop/github/paper-istr-2018/'
-rawdatapath = 'C:/Users/mcdonndz-local/Desktop/data/paper-istr-2018/data_raw/'
+datapath = 'C:/Users/mcdonndz-local/Desktop/data/paper-istr-2018/data_raw/'
 
 print(projpath)
-print(rawdatapath)
-
-	# Create a folder for the download to be saved in
-	try:
-		os.mkdir(rawdatapath+ddate)
-	except:
-		print('Folder already exists')
+print(datapath)
 
 
 # Define urls where Charity Registers can be downloaded
@@ -86,7 +80,7 @@ for el in latest_dlinks:
 	# Write the r.content to a file in the newly created folder #
 	name = file_type[counter]
 
-	file = rawdatapath + '/' + udate + '/' + 'cc_' + name + '_' + ddate + '.zip'
+	file = rawdatapath + '/' + 'cc_' + name + '_' + '.zip'
 	print(file)
 	outzip = open(file, 'wb')
 	outzip.write(r.content)
@@ -100,7 +94,7 @@ for el in latest_dlinks:
 
 		# Set working directory to clean data folder
 
-		os.chdir(cleandatapath)
+		os.chdir(datapath)
 		import_zip(file)
 		os.chdir('C:/Users/mcdonndz-local')
 

@@ -68,7 +68,7 @@ capture log close
 
 /* Australia */
 
-use $path3\aus_annret2016_analysis.dta, clear
+use $path3\aus_annret_2014-16.dta, clear
 capture datasignature report
 count
 desc, f
@@ -106,18 +106,9 @@ notes
 		Not possible using Australia data.
 	*/
 	
-	codebook mainactivity charitysize_ais2016 international, compact
-	tab1 mainactivity charitysize_ais2016 international
-	/*
-		There are far too many categories of mainactivity; create a derived variable with six categories:
-			- top five most common, and collapse the rest into 'other'.
-	*/
-	
-		capture drop sector
-		gen sector = mainactivity
-		tab sector, sort
-		recode sector 22=1 21=2 24=3 18=4 4=5 .=. *=6
-		tab sector
+	codebook sector charsize international, compact
+	tab1 sector charsize international
+
 
 		
 **********************************************************************************************************************************
@@ -135,7 +126,7 @@ notes
 	
 	// Multinomial logistic regression of whether a charity is removed
 					
-	mdesc sector charitysize_ais2016 international
+	mdesc sector charsize international
 	/*
 		A quarter of the sample has missing data for charityage (24%).
 	*/
@@ -144,7 +135,7 @@ notes
 			
 	capture drop nomiss_model
 	gen nomiss_model = 1
-	replace nomiss_model = 0 if missing(sector) | missing(charitysize_ais2016) | missing(international)
+	replace nomiss_model = 0 if missing(sector) | missing(charsize) | missing(international)
 	tab nomiss_model // 1,878 observations with no missing data for all of the independent variables.
 	keep if nomiss_model==1
 			
@@ -169,23 +160,23 @@ notes
 	
 	tab removed
 	
-	tab1 sector charitysize_ais2016 international
+	tab1 sector charsize international
 
 	local fdate = "25apr2018"
 
 	graph hbar if removed > 0, over(removed) over(sector) stack asyvar percent
-	graph bar if removed > 0, over(removed) over(charitysize_ais2016) stack asyvar percent
+	graph bar if removed > 0, over(removed) over(charsize) stack asyvar percent
 	graph bar if removed > 0, over(removed) over(international) stack asyvar percent
 	
-	tab removed if removed > 0
+	tab aryear removed
 	local numobs:di %6.0fc r(N)
 		
-	graph bar if removed > 0, over(removed) stack asyvar percent ///
-		bar(1, color(maroon )) bar(2, color(dknavy)) ///
+	graph bar if removed > 0, over(removed) over(aryear) stack asyvar percent ///
+		bar(1, color(maroon )) bar(2, color(dknavy)) bar(3, color(erose)) ///
 		ylabel(, nogrid labsize(small)) ///
 		ytitle("% of charities", size(medsmall)) ///
 		title("Charity Removal Reasons - Australia")  ///
-		subtitle("2016")  ///
+		subtitle("by annual return year")  ///
 		note("Source: Charity Commission Register of Charities (31/12/2016);  n=`numobs'. Produced: $S_DATE.", size(vsmall) span) ///
 		scheme(s1color)
 
