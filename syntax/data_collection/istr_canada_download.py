@@ -73,7 +73,7 @@ for key, val in chartype.items():
 
 # Write contents of .txt files to csv
 
-outputfile =datapath + '/' +  'canada_register_' + ddate + '.csv'
+outputfile = datapath + '/' +  'canada_register.csv'
 varnames = ['BN/Registration Number', 'Charity Name', 'Charity Status', 'Effective Date of Status', 'Sanction', 'Designation Code', 'Category Code', 'Address', 'City', 'Province', 'Country', 'Postal Code']
 print(len(varnames))
 orgcounter = 0
