@@ -14,19 +14,6 @@
 */
 
 
-******* Preliminaries *******
-
-// These are all handled by profile.do
-
-/*
-clear
-capture clear matrix
-set mem 400m // not necessary in recent versions of Stata
-set more off, perm
-set scrollbufsize 2048000
-exit
-*/
-
 /* Define paths */
 
 include "C:\Users\mcdonndz-local\Desktop\github\ew_charity_data\stata\do_files\ew_paths_20180419.doi"
@@ -41,6 +28,8 @@ di "$path8"
 
 
 /* 1. Open the raw data in csv format */
+
+/* Base dataset - extract_charity */
 
 import delimited using $path3\extract_charity.csv, varnames(1) clear
 count
@@ -73,9 +62,41 @@ codebook *, compact
 		list regno if missing(real(regno))
 		replace regno = "" if missing(real(regno)) // Set nonnumeric instances of regno as missing
 		destring regno, replace
+		drop if regno==. // Drop instances where regno is missing.
 		
 		duplicates report regno
-		duplicates list regno
+		duplicates list regno in 1/2000
+		duplicates tag regno, gen(dupregno)
+		
+			duplicates report regno subno
+			duplicates list regno subno
+		
+			list regno subno if regno==200027
+			list regno subno if regno==201415
+			list regno subno if dupregno!=0
+			codebook subno
+			codebook subno if dupregno!=0
+			/*
+				Ok, it looks as if the remaining instances of duplicate regno is accounted for by each subsidiary of a charity having its parent
+				charity's regno.
+				
+				Create a variable that counts the number of subsidiaries per charity, and drop observations where subno > 0.
+			*/
+			
+			destring subno, replace
+			bysort regno: egen subsidiaries = max(subno)
+			list regno subno subsidiaries in 1/1000
+			
+			keep if subno==0
+			drop dupregno
+			/*
+				Think about keeping subsidiaries later on, as we can track their registration and removal dates.
+			*/
+		
+		duplicates report regno name
+		/*
+			I think some of the issues with regno stem from how the csv file is built using NCVO scripts; it might be worth raising this with them.
+		*/
 	
 	
 	/* Remove unnecessary variables */
@@ -89,124 +110,401 @@ codebook *, compact
 	
 	sort regno
 	list regno in 1/1000
+	notes: use regno for linking with other datasets containing charity numbers
 
-	
-	/* Deal with issues identified by codebook, problems */
-	
-	// Trim leading and trailing blanks
-	
-	foreach var in name nicename gd aob address objects phone aob_classified corr address postcode fax web latest_strata almanac_strata objects date_registered date_removed icnpo_category icnpo_ncvo_category regy {
-		replace `var' = strtrim(`var')
-	}
-	
-	// Trim embedded blanks
-	
-	foreach var in name nicename gd aob aob_classified corr address postcode phone fax web latest_strata almanac_strata objects date_registered date_removed icnpo_category icnpo_ncvo_category regy {
-		replace `var' = subinstr(`var', " ", "", .)
-	}
-			
-	
 	
 	/* Invalid values for each variable */
-	
-	codebook regno
-	inspect regno // This variable is a string; should really be numeric.
-	list regno in 300000/l // I think it's due to presence of Scottish charity numbers.
-	list regno in 1/1000
-	notes: use regno for linking with other datasets containing charity numbers
-	
 		
-		// Count string length and determine if scottish and english/welsh charity numbers are different:
-		
-		capture drop length_regno
-		gen length_regno = strlen(regno)
-		inspect length_regno
-		sum length_regno
-		tab length_regno
-		
-			list regno if length_regno==8 // I think these are Scottish charities
-			list regno if length_regno==7
-			list regno if length_regno==6 // 6 and 7 must be English & Welsh charities
-			
-			count if length_regno==6
-
-			// Let's remove the "SC" at the beginning and replace with a numeric prefix unique to Scottish charities e.g. "5050"
-			
-			preserve
-				replace regno = substr(regno, 3, .)
-				duplicates report regno
-			restore
-			/*
-				Just removing the "SC" creates duplicates of regno.
-			*/
-				
-
-			replace regno = subinstr(regno, "SC", "5050", .) if length_regno==8
-			list regno if length_regno==8
-			duplicates report regno
-			duplicates list regno
-			
-				// Create a variable identifying Scottish charities
-			
-				capture drop scot
-				gen scot = 1 if length_regno==8
-				
-				// Drop Scottish charities from the dataset
-				
-				drop if scot==1
-
-			drop length_regno
-			
-		
-		// Create a unique id (numeric)
-		
-		capture drop uniqueid
-		gen uniqueid = _n
-		list uniqueid in 1/1000
-		sort uniqueid
-		
-	destring regno, replace
-	
-		
-	codebook name nicename
-	list name nicename in 1/1000 // There are some dummy charities (e.g. TestCharity, DELETED) that need to be removed.
+	codebook name
+	list name in 1/1000 // There are some dummy charities (e.g. TestCharity, DELETED) that need to be removed.
 	preserve
 		gsort name
-		list name nicename in 1/1000
+		list name in 1/1000
 	restore
 	/*
-		There are some minor issues with name (55 missing values, invalid values e.g. TestCharity, DELETED).
-		I'll just assume that all of the values for regno are valid and ignore name.
+		There are some minor issues with name (invalid values e.g. TestCharity, DELETED).
+		I'll just assume that all of the values for regno are valid and ignore this variable.
 	*/
-	drop nicename
+	
+	
+	codebook subno // Is a constant i.e. no subsidiary orgs in the dataset; drop
+	drop subno
 	
 	
 	codebook orgtype
 	tab orgtype // RM=removed, R=registered i.e. active
 	encode orgtype, gen(charitystatus)
 	tab charitystatus
+	recode charitystatus 1=1 2=2 3/max=. // Recode anything above 2 (the highest valid value) as missing data.
 	label define charitystatus_label 1 "Active" 2 "Removed"
 	label values charitystatus charitystatus_label
 	tab charitystatus
 	drop orgtype
 	
 	
-	codebook gd aob aob_classified
-	tab1 aob_classified
+	codebook aob aob_defined // Both are free-text fields that we can do nothing with at this moment; drop.
+	drop aob aob_defined 
 	
 	
+	codebook gd // Statement from governing document; keep.
 
 	
+	codebook nhs
+	tab nhs // Should have two values: T=true, F=false. Only has false, missing and incorrect string values.
+	drop nhs
+
 	
-	codebook welsh
-	tab welsh // T=true, F=false?
-	encode welsh, gen(charity_wales)
-	tab charity_wales, nolabel
-	label define charity_wales_label 1 "False" 2 "True"
-	label values charity_wales charity_wales_label
-	tab charity_wales
+	codebook ha_no
+	drop ha_no // Should be a charity's Housing Association number; only contains the value "F", the rest is missing; drop.
+	
+	
+sav $path1\ew_charityregister_apr2018_v1.dta, replace	
+	
+	
+/* Charitable purposes classification dataset */
+
+import delimited using $path3\extract_class.csv, varnames(1) clear
+count
+desc, f
+notes
+codebook *, compact
+	
+	duplicates report
+	duplicates list
+	
+	duplicates report regno // Huge number of duplicate charity numbers, which is probably accounted for by a charity having more than one purpose.
+	*duplicates list regno
+
+		
+	codebook regno
+	list regno in 1/1000
+	notes: use regno for linking with other datasets containing charity numbers
+
+	
+	codebook class
+	tab class
+	rename class classno // To match the class reference dataset
+	
+	sort classno
+	
+sav $path1\ew_class_apr2018_v1.dta, replace
+
+
+/* Charitable purposes classification reference dataset */
+
+import delimited using $path3\extract_class_ref.csv, varnames(1) clear
+count
+desc, f
+notes
+codebook *, compact
+	
+	duplicates report
+	duplicates list
+	
+	codebook classno
+	sort classno
+	
+	codebook classtext
+	tab classtext
+	
+sav $path1\ew_class_ref_apr2018.dta, replace
+
+	
+/* extract_main_charity dataset */
+
+import delimited using $path3\extract_main_charity.csv, varnames(1) clear
+count
+desc, f
+notes
+codebook *, compact
+**codebook *, problems
+
+/*
+		- remove problematic variables/cases e.g. duplicate records, missing values etc
+		- sort data by unique identifier
+		- explore invalid values for each variable
+		- label variables/values/dataset
+*/
+
+
+	/* Missing or duplicate values */
+	
+	capture ssc install mdesc
+	mdesc
+	missings dropvars, force
+	
+	duplicates report
+	duplicates list
+	duplicates drop
+	
+	duplicates report regno
+	duplicates list regno
+	
+	
+	/* Remove unnecessary variables */
+	
+	drop email web
+	
+		
+	/* 	Sort data */
+	
+	sort regno
+	list regno in 1/1000
+	notes: use regno for linking with other datasets containing charity numbers
+
+	
+	/* Invalid values for each variable */
+		
+	codebook coyno // Companies House number
+	list coyno if ~missing(real(coyno)) in 1/1000
+	list coyno if regex(coyno, "OC")
+	replace coyno = "" if missing(real(coyno)) // Set nonnumeric instances (including blanks) of coyno as missing
+	
+		capture drop length_coyno
+		gen length_coyno = strlen(coyno)
+		tab length_coyno // 0=missing and lots of varying lengths.
+		drop length_coyno
+		
+	destring coyno, replace
+	
+	duplicates report regno coyno
+	
+	gen company = 1 if coyno!=. 
+	recode company 1=1 .=0
+	tab company
+	/*
+		It's difficult to trust this field as we do not know if the company numbers themselves are valid e.g. they are of varying length.
+	*/
+
+	
+	codebook trustees
+	tab trustees
+	encode trustees, gen(trustee_incorp)
+	tab trustee_incorp
+	recode trustee_incorp 1=1 2=2 3/max=. // Recode anything above 2 (the highest valid value) as missing data.
+	label define trustee_incorp_label 1 "False" 2 "True"
+	label values trustee_incorp trustee_incorp_label
+	tab trustee_incorp
+	drop trustees
+	
+	
+	codebook welsh // Captures whether the Commission communicates with the charity via Welsh language; drop.
 	drop welsh
+	
+	
+	codebook fyend // Financial year end - DD/MM. Keep for now but it is probably not needed.
+	
+	
+	codebook incomedate // Date latest income figure refers to- currently a string.
+	rename incomedate str_incomedate
+	replace str_incomedate = substr(str_incomedate, 1, 10) // Capture first 10 characters of string.
+	replace str_incomedate = subinstr(str_incomedate, "-", "", .)
+	tab str_incomedate, sort
+	
+	gen incomedate = date(str_incomedate, "YMD")
+	format incomedate %td
+	codebook incomedate
+	
+	gen incomeyr = year(incomedate) // Identify the year the latest gross income refers to
+	tab incomeyr
+	drop str_incomedate
+	
+	
+	codebook grouptype // No explanation in the data dictionary as to what this represents; drop.
+	drop grouptype
+	
+	
+	codebook income
+	inspect income
+	sum income, detail
+	
+	sort regno
+	
+sav $path1\ew_mcdataset_apr2018_v1.dta, replace	
+	
+	
+/* extract_registration dataset */	
 
+import delimited using $path3\extract_registration.csv, varnames(1) clear
+count
+desc, f
+notes
+codebook *, compact
+
+	/* Missing or duplicate values */
+	
+	capture ssc install mdesc
+	mdesc
+	missings dropvars, force
+	
+	duplicates report
+	duplicates list
+	duplicates drop
+	
+	duplicates report regno
+	duplicates list regno
+	duplicates tag regno, gen(dupregno)
+		
+		list regno subno if regno==1175809
+		list regno subno if regno==1176305
+		list regno subno if dupregno!=0
+		codebook subno
+		codebook subno if dupregno!=0
+		/*
+			Ok, it looks as if the remaining instances of duplicate regno is accounted for by each subsidiary of a charity having its parent
+			charity's regno.
+			
+			Create a variable that counts the number of subsidiaries per charity, and drop observations where subno > 0.
+		*/
+			
+		bysort regno: egen subsidiaries = max(subno)
+		list regno subno subsidiaries in 1/1000
+			
+		keep if subno==0
+		drop dupregno
+		/*
+			Think about keeping subsidiaries later on, as we can track their registration and removal dates.
+		*/
+	
+	notes: use regno for linking with other datasets containing charity numbers
+
+	
+	codebook regdate remdate // Variables are currently strings, need to extract info in YYYYMMDD format.
+	*tab1 regdate remdate
+	foreach var of varlist regdate remdate {
+		rename `var' str_`var'
+		replace str_`var' = substr(str_`var', 1, 10) // Capture first 10 characters of string.
+		replace str_`var' = subinstr(str_`var', "-", "", .) // Remove hyphen from date information.
+		
+		gen `var' = date(str_`var', "YMD")
+		format `var' %td
+		codebook `var'
+		
+		gen `var'yr = year(`var')
+		drop str_`var'
+	}
+	
+	rename regdateyr regy
+	rename remdateyr remy
+	codebook regy remy
+	tab1 regy remy, sort
+	
+	
+	codebook remcode
+	tab remcode // Need to merge with extract_remove_ref to understand the codes.
+	
+	sort remcode
+	
+sav $path1\ew_rem_apr2018_v1.dta, replace
+
+
+/* extract_remove_ref dataset */	
+
+import delimited using $path3\extract_remove_ref.csv, varnames(1) clear
+count
+desc, f
+notes
+codebook *, compact
+
+	duplicates report
+	duplicates list
+	
+	list , clean
+
+	rename code remcode
+	
+	sort remcode
+	
+sav $path1\ew_rem_ref_apr2018.dta, replace
+
+
+/* extract_trustee dataset */
+
+import delimited using $path3\extract_trustee.csv, varnames(1) clear
+count
+desc, f
+notes
+codebook *, compact
+
+	/* Missing or duplicate values */
+	
+	capture ssc install mdesc
+	mdesc
+	missings dropvars, force
+	tab v3
+	drop v3
+	
+	duplicates report
+	duplicates list
+	duplicates drop
+	
+	
+	codebook regno
+	sort regno
+	
+	
+	codebook trustee
+	list trustee in 1/1000 // We don't need the names, just a count of trustees per charity.
+	bysort regno: egen trustees = count(trustee)
+	sum trustees
+	
+	drop trustee
+
+sav $path1\ew_trustees_apr1018.dta, replace
+
+
+
+	
+	
+/* Merge supplementary datasets with Charity Register */	
+	
+	// Merge class datasets
+	
+	use $path1\ew_class_apr2018_v1.dta, clear
+	
+	merge m:1 classno using $path1\ew_class_ref_apr2018.dta, keep(match master using)
+	tab _merge
+	drop _merge
+	
+	sort regno
+	
+	sav $path1\ew_class_apr2018.dta, replace
+	
+	
+	// Merge rem datasets
+	
+	use $path1\ew_rem_apr2018_v1.dta, clear
+	
+	merge m:1 remcode using $path1\ew_rem_ref_apr2018.dta, keep(match master using)
+	tab _merge
+	drop _merge
+	
+	rename text removed_reason
+	codebook removed_reason
+	tab removed_reason
+	rename removed_reason oldvar
+	
+	encode oldvar, gen(removed_reason)
+	tab removed_reason
+	tab removed_reason, nolab
+	drop oldvar
+	notes: Only use two categories of removed_reason to measure demise/closure: CEASED TO EXIST (3) and DOES NOT OPERATE (4).
+	
+	sort regno
+	
+	sav $path1\ew_rem_apr2018.dta, replace
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+	
 	
 	codebook coyno // Companies House number
 	list coyno if coyno!=""
@@ -317,7 +615,7 @@ codebook *, compact
 	label values removed_reason removed_reason_label
 	tab removed_reason
 	drop oldvar
-	notes: Only use two categories of removed_reason: CEASED TO EXIST (3) and DOES NOT OPERATE (11).
+	notes: Only use two categories of removed_reason to measure demise/closure: CEASED TO EXIST (3) and DOES NOT OPERATE (11).
 
 	
 	

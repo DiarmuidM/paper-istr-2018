@@ -52,8 +52,8 @@ numfiles = len(dlinks)
 months = numfiles / 3
 print('We have %s months of data extracts in total' %months)
 
-# We only want the first three links as this corresponds to the most recent month of data.
-latest_dlinks = dlinks[0:3]
+# We only want the first three links as this corresponds to the most recent charity data extract.
+latest_dlinks = dlinks[0:3] # amend the range if you want other months e.g. dlinks[3:6]
 print(latest_dlinks)
 
 file_type = ['CharityRegister', 'SIR', 'TableBuild']
@@ -80,7 +80,7 @@ for el in latest_dlinks:
 	# Write the r.content to a file in the newly created folder #
 	name = file_type[counter]
 
-	file = rawdatapath + '/' + 'cc_' + name + '_' + '.zip'
+	file = datapath + '/' + 'cc_' + name + '.zip'
 	print(file)
 	outzip = open(file, 'wb')
 	outzip.write(r.content)
@@ -90,9 +90,9 @@ for el in latest_dlinks:
 
 	if name == 'CharityRegister': 
 
-		from istr_ew_import import import_zip
+		from istr_ew_fimport import import_zip
 
-		# Set working directory to clean data folder
+		# Set working directory to data folder
 
 		os.chdir(datapath)
 		import_zip(file)

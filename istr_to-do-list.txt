@@ -1,6 +1,7 @@
 To do list (updated 25/04/2018):
 
 - In istr_master.py, write the download date and other meta data to a .txt file.
+- Add data dictionaries as readme.md file(s) on Github: http://data.charitycommission.gov.uk/data-definition.aspx; NZ; Canada
 - Add 'istr_' prefix to syntax files.[DONE]
 - Convert project folder to Github repo. [DONE]
 - Update syntax files so the data are downloaded to the correct folder: .\paper-istr-2018\data_raw
@@ -11,3 +12,4 @@ To do list (updated 25/04/2018):
 - Explore more independent variables that can be harmonised across the 3/4 countries.
 - Copy working version of aus download to 'aus_charity_data' repo. [DONE]
 - Amend istr_canada_download.py and istr_ew_download.py so that the original download folders are deleted.
+- Decide what to do with subsidiaries in the England & Wales data (we currently drop them from the dataset).
