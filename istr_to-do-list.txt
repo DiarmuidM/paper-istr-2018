@@ -13,3 +13,4 @@ To do list (updated 25/04/2018):
 - Copy working version of aus download to 'aus_charity_data' repo. [DONE]
 - Amend istr_canada_download.py and istr_ew_download.py so that the original download folders are deleted.
 - Decide what to do with subsidiaries in the England & Wales data (we currently drop them from the dataset).
+- See if additional information for England & Wales charites can be gleaned from charitybase API.
