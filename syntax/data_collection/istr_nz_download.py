@@ -1,5 +1,5 @@
 # Script to search NZ Charities Services OData API
-# Diarmuid McDonnell, ALasdair Rutherford
+# Diarmuid McDonnell, Alasdair Rutherford
 # Created: 27 February 2018
 # Last edited: 5 Apr 2018
 
@@ -17,6 +17,13 @@ from time import sleep
 from datetime import datetime
 from downloaddate_function import downloaddate
 
+'''
+# Run the downloaddate function to get the date
+ddate = downloaddate()
+
+# Path to save the downloaded data
+
+datapath = 'C:/Users/mcdonndz-local/Dropbox/paper-istr-2018/data_raw/' # Dropbox folder for project
 
 
 # Given the web address and a recordtype, this function downloads a CSV with specified splits
@@ -36,7 +43,7 @@ def downloadcsv(baseurl, data, ddate,  splityear=0, splitmonth=0, splitday=0, sp
 		recordfilter = recordfilter + ' and endofyearmonth eq ' + str(spliteymonth)
 	
 	# Write the r.content to a file in the newly created folder #
-	outputfile = datapath + ddate + '/' + data + '/' + 'nz_' + data + '_y' + str(splityear) + '_m' + str(spliteymonth) +  '_p' + str(splitemp) + '_' + ddate + '.csv'
+	outputfile = datapath + '/' + data + '/' + 'nz_' + data + '_y' + str(splityear) + '_m' + str(spliteymonth) +  '_p' + str(splitemp) + '_' + ddate + '.csv'
 	print('		Saving CSV file to:', outputfile)
 
 	# Build the query web address
@@ -74,15 +81,10 @@ def downloadcsv(baseurl, data, ddate,  splityear=0, splitmonth=0, splitday=0, sp
 ########################################################################################################
 
 
-# Run the downloaddate function to get the date
-ddate = downloaddate()
+# Define url and data endpoints to search in
 
-# Path to save the downloaded data
-datapath = './rawdata/' #
-
-
-# Variables to store OData endpoint and database tables #
 baseurl = 'http://www.odata.charities.govt.nz/'
+
 register = 'Organisations' 
 grpannreturns = 'GrpOrgAllReturns'
 activities = 'Activities'
@@ -95,12 +97,6 @@ funds = 'SourceOfFunds'
 vorgs = 'vOrganisations'
 voff = 'vOfficerOrganisations'
 
-# Create a folder for the download to be saved in #
-try:
-	os.mkdir(datapath+ddate)
-	print('Download date folder created')
-except:
-	print('Download date folder already exists')
 
 print('_____________________________________________')
 
@@ -127,7 +123,7 @@ for data in search:
 
 	# Create a folder for the record type
 	try:
-		os.mkdir(datapath+ddate+'/'+data)
+		os.mkdir(datapath+'/'+data)
 		print(data, 'folder created')
 	except:
 		print(data, 'folder already exists')
@@ -147,7 +143,7 @@ for data in search_big:
 
 	# Create a folder for the record type
 	try:
-		os.mkdir(datapath+ddate+'/'+data)
+		os.mkdir(datapath+'/'+data)
 		print(data, 'folder created')
 	except:
 		print(data, 'folder already exists')
@@ -179,3 +175,46 @@ for data in search_big:
 # Close the logfile and finish
 logfile.close()
 print('*** All done!')
+
+'''
+########################################################################################################
+
+										# Perform diagnostics #
+
+########################################################################################################
+
+# Regroup downloaded files by year
+
+import istr_nz_regroupfilesbyyear
+print('istr_nz_regroupfilesbyyear.py')
+print('                                             ')
+print('---------------------------------------------')
+print('                                             ')
+sleep(10)
+
+# Check integrity of downloaded files
+
+import istr_nz_checkintegrity
+print('istr_nz_checkintegrity.py')
+print('                                             ')
+print('---------------------------------------------')
+print('                                             ')
+sleep(10)
+
+# Code area of operations variable
+
+import istr_nz_codeareas # ERROR in line 9 of this script
+print('istr_nz_codeareas.py')
+print('                                             ')
+print('---------------------------------------------')
+print('                                             ')
+sleep(10)
+
+# Code deregistration variable
+
+import istr_nz_codederegistration
+print('istr_nz_codederegistration.py')
+print('                                             ')
+print('---------------------------------------------')
+print('                                             ')
+sleep(10)

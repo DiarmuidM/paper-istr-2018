@@ -7,6 +7,19 @@ global path1 = "C:\Users\ar34\Dropbox\Academic\Academic-Research-Projects\gitrep
 
 //\analysis"
 
+/* Define paths */
+/*
+
+include "C:\Users\mcdonndz-local\Desktop\github\paper-istr-2018\syntax\project_paths.doi"
+di "$path1"
+di "$path2"
+di "$path3"
+di "$path4"
+di "$path5"
+di "$path6"
+di "$path7"
+di "$path8"
+*/
 
 
 // ORGANISATION DATA

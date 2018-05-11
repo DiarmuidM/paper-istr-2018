@@ -1,5 +1,5 @@
-// File: ew_datamanagement_20180419.do
-// Creator: Diarmuid McDonnell
+// File: istr_ew_data-cleaning.do
+// Creator: Diarmuid McDonnell, Alasdair Rutherford
 // Created: 19/04/2018
 
 ******* England & Wales Register of Charities data cleaning *******
@@ -16,7 +16,7 @@
 
 /* Define paths */
 
-include "C:\Users\mcdonndz-local\Desktop\github\ew_charity_data\stata\do_files\ew_paths_20180419.doi"
+include "C:\Users\mcdonndz-local\Desktop\github\paper-istr-2018\syntax\project_paths.doi"
 di "$path1"
 di "$path2"
 di "$path3"
@@ -31,7 +31,7 @@ di "$path8"
 
 /* Base dataset - extract_charity */
 
-import delimited using $path3\extract_charity.csv, varnames(1) clear
+import delimited using $path2\extract_charity.csv, varnames(1) clear
 count
 desc, f
 notes
@@ -163,7 +163,7 @@ sav $path1\ew_charityregister_apr2018_v1.dta, replace
 	
 /* Charitable purposes classification dataset */
 
-import delimited using $path3\extract_class.csv, varnames(1) clear
+import delimited using $path2\extract_class.csv, varnames(1) clear
 count
 desc, f
 notes
@@ -192,7 +192,7 @@ sav $path1\ew_class_apr2018_v1.dta, replace
 
 /* Charitable purposes classification reference dataset */
 
-import delimited using $path3\extract_class_ref.csv, varnames(1) clear
+import delimited using $path2\extract_class_ref.csv, varnames(1) clear
 count
 desc, f
 notes
@@ -212,7 +212,7 @@ sav $path1\ew_class_ref_apr2018.dta, replace
 	
 /* extract_main_charity dataset */
 
-import delimited using $path3\extract_main_charity.csv, varnames(1) clear
+import delimited using $path2\extract_main_charity.csv, varnames(1) clear
 count
 desc, f
 notes
@@ -325,7 +325,7 @@ sav $path1\ew_mcdataset_apr2018_v1.dta, replace
 	
 /* extract_registration dataset */	
 
-import delimited using $path3\extract_registration.csv, varnames(1) clear
+import delimited using $path2\extract_registration.csv, varnames(1) clear
 count
 desc, f
 notes
@@ -400,7 +400,7 @@ sav $path1\ew_rem_apr2018_v1.dta, replace
 
 /* extract_remove_ref dataset */	
 
-import delimited using $path3\extract_remove_ref.csv, varnames(1) clear
+import delimited using $path2\extract_remove_ref.csv, varnames(1) clear
 count
 desc, f
 notes
@@ -420,7 +420,7 @@ sav $path1\ew_rem_ref_apr2018.dta, replace
 
 /* extract_trustee dataset */
 
-import delimited using $path3\extract_trustee.csv, varnames(1) clear
+import delimited using $path2\extract_trustee.csv, varnames(1) clear
 count
 desc, f
 notes
@@ -453,6 +453,156 @@ codebook *, compact
 sav $path1\ew_trustees_apr1018.dta, replace
 
 
+/* extract_acct_submit dataset */
+
+import delimited using $path2\extract_acct_submit.csv, varnames(1) clear
+count
+desc, f
+notes
+codebook *, compact
+
+	/* Missing or duplicate values */
+	
+	capture ssc install mdesc
+	mdesc
+	missings dropvars, force
+	
+	duplicates report
+	duplicates list
+	duplicates drop
+	
+	duplicates report regno
+	duplicates list regno
+		
+	duplicates report regno submit_date
+	duplicates list regno submit_date // I cannot see why a charity should submit more than one set of accounts on the same day.
+	duplicates tag regno submit_date, gen(dupregnosubdate)
+	
+		duplicates report regno submit_date arno
+		duplicates list regno submit_date arno
+
+	notes: use regno for linking with other datasets containing charity numbers
+
+	
+	codebook submit_date // Variables are currently strings, need to extract info in YYYYMMDD format.
+	foreach var of varlist submit_date {
+		rename `var' str_`var'
+		replace str_`var' = substr(str_`var', 1, 10) // Capture first 10 characters of string.
+		replace str_`var' = subinstr(str_`var', "-", "", .) // Remove hyphen from date information.
+		
+		gen `var' = date(str_`var', "YMD")
+		format `var' %td
+		codebook `var'
+		
+		gen `var'yr = year(`var')
+		drop str_`var'
+	}
+	
+	rename submit_dateyr arsubyr
+	tab arsubyr
+	
+	
+	codebook arno // Annual return mailing cycle code; not sure what we can do with this information; drop.
+	drop arno
+	
+	
+	codebook fyend
+	tab fyend
+	drop fyend // We can get this field in other datasets; drop.
+	
+	sort regno arsubyr
+	
+sav $path1\ew_acctsub_apr2018_v1.dta, replace
+
+
+/* extract_aoo_ref dataset */
+
+import delimited using $path2\extract_aoo_ref.csv, varnames(1) clear
+count
+desc, f
+notes
+codebook *, compact
+	
+	duplicates report
+	duplicates list
+	
+	duplicates report aooname
+	duplicates list aooname
+	list if aooname=="ANTARCTICA" // Antartica is listed as a country and continent; drop observation which refers to it as a country.
+	drop if aooname=="ANTARCTICA" & aootype=="D"
+
+	notes: use aootype and aookey for linking with other datasets area of operation data
+	
+	
+	codebook welsh // I think it identifies Welsh charities.
+	tab welsh
+	rename welsh str_welsh
+	encode str_welsh, gen(welsh)
+	tab welsh
+	drop str_welsh
+	
+	
+	tab1 aootype aookey
+	
+	sort aootype aookey
+	
+sav $path1\ew_aoo_ref_apr2018.dta, replace
+
+
+/* extract_charity_aoo dataset */
+
+import delimited using $path2\extract_charity_aoo.csv, varnames(1) clear // Information on a charity's area of operation.
+count
+desc, f
+notes
+codebook *, compact
+**codebook *, problems
+
+/*
+		- remove problematic variables/cases e.g. duplicate records, missing values etc
+		- sort data by unique identifier
+		- explore invalid values for each variable
+		- label variables/values/dataset
+*/
+
+
+	/* Missing or duplicate values */
+	
+	capture ssc install mdesc
+	mdesc
+	missings dropvars, force
+	
+	duplicates report
+	duplicates list
+	duplicates drop
+	
+	duplicates report regno
+	duplicates list regno // Duplicates probably due to inclusion of subsidiaries in this dataset.
+		
+		
+	/* 	Sort data */
+	
+	sort regno
+	list regno in 1/1000
+	notes: use regno for linking with other datasets containing charity numbers
+
+	
+	/* Invalid values for each variable */
+		
+	codebook welsh // I think it identifies Welsh charities.
+	tab welsh
+	rename welsh str_welsh
+	encode str_welsh, gen(welsh)
+	tab welsh
+	drop str_welsh
+	
+	
+	codebook aootype aookey // The meaning of these variables is contained in the extract_aoo_ref dataset. Encode after matching with aoo ref dataset.
+	
+	sort aootype aookey
+		
+sav $path1\ew_aoo_apr2018_v1.dta, replace
+
 
 	
 	
@@ -469,6 +619,32 @@ sav $path1\ew_trustees_apr1018.dta, replace
 	sort regno
 	
 	sav $path1\ew_class_apr2018.dta, replace
+	
+	
+	// Merge aoo datasets
+	
+	use $path1\ew_aoo_apr2018_v1.dta, clear
+	
+	merge m:1 aootype aookey using $path1\ew_aoo_ref_apr2018.dta, keep(match master using)
+	tab _merge
+	drop _merge
+	
+	sort aootype aookey
+	
+	tab aooname, sort
+	
+	tab aoosort, sort
+	
+	tab aootype, sort
+	rename aootype str_aootype
+	encode str_aootype, gen(aootype)
+	tab aootype
+	label define aootype_lab 1 "Wide" 2 "LA" 3 "GLA/met county" 4 "Country" 5 "Continent"
+	label values aootype aootype_lab
+	tab aootype
+	drop str_aootype
+	
+	sav $path1\ew_aoo_apr2018.dta, replace
 	
 	
 	// Merge rem datasets
@@ -496,8 +672,20 @@ sav $path1\ew_trustees_apr1018.dta, replace
 	
 	
 	
+	/* Empty working data folder */
 	
+	**shell rmdir $path1 /s /q
 	
+	pwd
+	
+	local workdir "C:\Users\mcdonndz-local\Desktop\data\paper-istr-2018\data_working\"
+	cd `workdir'
+	
+	local datafiles: dir "`workdir'" files "*.dta"
+	
+	foreach datafile of local datafiles {
+		rm `datafile'
+	}
 	
 	
 	

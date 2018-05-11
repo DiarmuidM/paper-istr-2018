@@ -31,10 +31,10 @@ vorgs = 'vOrganisations'
 voff = 'vOfficerOrganisations'
 
 # Run the downloaddate function to get the date
-ddate = '20180330' #downloaddate()
+ddate = downloaddate()
 
 # Path to save the downloaded data
-datapath = './rawdata/'
+datapath = 'C:/Users/mcdonndz-local/Dropbox/paper-istr-2018/data_raw/' # Dropbox folder for project
 
 print('_____________________________________________')
 
@@ -64,7 +64,7 @@ for data in search + search_big:
 
 	print('CSV - Whole files 	|	Record type:', data)
 
-	directory = datapath + ddate + '/' + data
+	directory = datapath + '/' + data
 
 
 	with open(os.path.join(directory, 'nz_' + data + '_integrityerrors.txt'), 'w', newline='', encoding='utf-8') as outCSVfile:

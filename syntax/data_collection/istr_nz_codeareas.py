@@ -1,8 +1,10 @@
 import csv
 
-projectPath = "./rawdata/20180330/"
+# Path to save the downloaded data
 
-arealookup = projectPath + "AreaOfOperations/nz_AreaOfOperations_coded.csv"
+datapath = 'C:/Users/mcdonndz-local/Dropbox/paper-istr-2018/data_raw/' # Dropbox folder for project
+
+arealookup = datapath + "AreaOfOperations/nz_AreaOfOperations_coded.csv"
 
 with open(arealookup, 'r', newline='') as arealookup_file:
 
@@ -20,13 +22,13 @@ for year in range(2007, 2018):
 
 	print(year)
 
-	infilename = projectPath + "GrpOrgAllReturns/GrpOrgAllReturns_yr" + str(year) + ".csv_integrity.csv"
+	infilename = datapath + "GrpOrgAllReturns/GrpOrgAllReturns_yr" + str(year) + ".csv_integrity.csv"
 
 	with open(infilename, 'r', newline='') as returnforcoding_file:
 
 		reader = csv.reader(returnforcoding_file)
 
-		outfilename = projectPath + "GrpOrgAllReturns/GrpOrgAllReturns_yr" + str(year) + ".csv_integrity_geog.csv"
+		outfilename = datapath + "GrpOrgAllReturns/GrpOrgAllReturns_yr" + str(year) + ".csv_integrity_geog.csv"
 
 		with open(outfilename, 'w', newline='') as outputcoded_file:
 
@@ -50,7 +52,3 @@ for year in range(2007, 2018):
 						geoglist.append(areadict[geog])
 				writer.writerow(row + geoglist)
 				#print('.', end='')
-
-
-					
-

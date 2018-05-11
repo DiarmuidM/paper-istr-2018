@@ -1,5 +1,5 @@
 // File: istr_can_data-cleaning.do
-// Creator: Diarmuid McDonnell
+// Creator: Diarmuid McDonnell, Alasdair Rutherford
 // Created: 25/04/2018
 // Updated: recorded in Github file history
 // Repository: [ADD LATER]
