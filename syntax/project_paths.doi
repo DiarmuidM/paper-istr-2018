@@ -1,9 +1,9 @@
 
 /* Stata include file containing the global path variables */
 
-global path1 "C:\Users\mcdonndz-local\Desktop\data\paper-istr-2018\data_working\"
-global path2 "C:\Users\mcdonndz-local\Desktop\data\paper-istr-2018\data_raw\"
-global path3 "C:\Users\mcdonndz-local\Desktop\data\paper-istr-2018\data_clean\"
+global path1 "C:\Users\mcdonndz-local\Dropbox\paper-istr-2018\data_working\"
+global path2 "C:\Users\mcdonndz-local\Dropbox\paper-istr-2018\data_raw\"
+global path3 "C:\Users\mcdonndz-local\Dropbox\paper-istr-2018\data_clean\"
 global path4 "C:\Users\mcdonndz-local\Desktop\github\paper-istr-2018\syntax\" 
 global path5 "C:\Users\mcdonndz-local\Desktop\github\paper-istr-2018\tables\"
 global path6 "C:\Users\mcdonndz-local\Desktop\github\paper-istr-2018\figures\"
