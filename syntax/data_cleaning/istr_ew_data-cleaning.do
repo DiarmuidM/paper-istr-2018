@@ -41,6 +41,7 @@ count
 desc, f
 notes
 codebook *, compact
+label data "One observation per registered/removed charity (including subsidiaries)"
 **codebook *, problems
 
 /*
@@ -163,7 +164,159 @@ codebook *, compact
 	drop ha_no // Should be a charity's Housing Association number; only contains the value "F", the rest is missing; drop.
 	
 	
-sav $path1\ew_charityregister_apr2018_v1.dta, replace	
+sav $path1\ew_charityregister_may2018_v1.dta, replace	
+
+
+/* extract_financial dataset */
+
+import delimited using $path2\extract_financial.csv, varnames(1) clear
+count
+desc, f
+notes
+codebook *, compact
+label data "Financial history for a main registered charity"
+**codebook *, problems
+
+	duplicates report // No duplicate records for all variables.
+	duplicates report regno 
+	duplicates report regno fyend
+	duplicates drop regno fyend, force
+		
+	
+	/* 	Sort data */
+	
+	sort regno fyend
+	list regno fyend in 1/1000
+	
+	
+	/* Invalid values for each variable */
+	
+	drop if income==. | expend==.
+	
+	codebook regno
+	inspect regno // This variable is a string; should really be numeric.
+	notes: Use regno for linking with other datasets containing charity numbers
+	
+	
+	codebook fyend
+	sort fyend
+	list fyend in 1/1000
+	gen year = substr(fyend, 1, 4)
+	destring year, replace
+	tab year
+	
+	duplicates report regno year
+	duplicates list regno year
+	duplicates drop regno year, force // Come back to this issue; most likely caused by charities changing their fyend date in the same calendar year.
+		
+
+	codebook income expend
+	inspect income expend
+	sum income expend, detail
+	
+	foreach var in income expend {
+		replace `var' = round(`var', 1)
+	}
+
+	**ladder income exp
+	
+		count if income==0 // 80,351 missing values for income
+		count if expend==0 // 182,430 missing values for expenditure
+			
+		foreach var in income expend {
+			gen ln_`var' = ln(`var' + 1)
+			histogram ln_`var', normal freq
+		}
+		sum ln_income ln_expend, detail
+		/*
+			Need to do something with these zeroes: exclude them from analyses? I suppose they are fine for now.
+			
+			Both income and expenditure are normally distributed if you discount zeroes.
+		*/
+
+		
+	// Create charitysize variables
+	
+	capture drop charitysize charitysize_exp
+	gen charitysize = income
+	recode charitysize 0=1 1/9999=2 10000/24999=3 25000/99999=4 100000/499999=5 500000/999999=6 1000000/9999999=7 10000000/99999999=8 100000000/max=9
+		tab charitysize
+	label define charitysize_label 1 "No income" 2 "Under 10k" 3 "10k - 25k" 4 "25k - 100k" 5 "100k - 500k" 6 "500k - 1m" ///
+		7 "1m - 10m" 8 "10m - 100m" 9 "Over 100m"
+	label values charitysize charitysize_label
+	tab charitysize
+	
+	gen charitysize_exp = expend
+	recode charitysize_exp 0=1 1/9999=2 10000/24999=3 25000/99999=4 100000/499999=5 500000/999999=6 1000000/9999999=7 10000000/99999999=8 100000000/max=9
+		tab charitysize_exp
+	label values charitysize_exp charitysize_label
+	tab charitysize_exp
+		
+		
+	/* 3. Set data as panel format */
+	
+	xtdes, i(regno) t(year) patterns(20) 
+		notes: We have multiple years of observations for 157,395 unique charities for 14 years.
+	isid regno year
+	xtset regno year
+	
+	xttab year
+
+		// Create variable capturing latest annual return year; can be used to calculate charity age (later on)
+	
+		by regno: egen latest_repyr = max(year)
+		xttab latest_repyr // Can be cross referenced with yearremoved to see what year a charity 'failed'.
+		tab year latest_repyr
+		
+		**gen charityage = maxyear - yearregistered
+		**tab charityage
+		
+		// Create variables to capture whether a charity made a surplus or a loss:
+		
+		capture drop incexpdiff
+		gen incexpdiff = income - expend // Check what effect (if any) missing data has on this calculation.
+			count if income==. & expend==.
+			count if income==. | expend==. // 129,034 instances where either inc or exp have missing values.
+		codebook incexpdiff
+		inspect incexpdiff
+		sum incexpdiff
+		tabstat incexpdiff, s(n range mean median sd max min sum p25 p75 iqr) format(%9.0f)
+
+		capture drop surplus
+		gen surplus = 1 if incexpdiff > 0
+		tab surplus
+		recode surplus 1=1 *=0
+		tab surplus
+		
+		capture drop loss
+		gen loss = 1 if incexpdiff<0
+		tab loss
+		recode loss 1=1 *=0
+		tab loss
+
+		capture drop breakeven
+		gen breakeven = incexpdiff if incexpdiff==0
+		recode breakeven 0=1 *=0
+		tab breakeven
+	
+		// Quick look to see if these variables were created properly:
+		list regno surplus loss breakeven in 1/100
+
+	
+	label variable regno "Charity number of organisation"
+	label variable year "Financial year end"
+	label variable income "Annual gross income - validated"
+	label variable expend "Annual gross expenditure - validated"
+	label variable latest_repyr "Most recent reporting year - derived from year"
+	label variable charitysize "Categorical measure of charity income - derived from inc"
+	label variable charitysize_exp "Categorical measure of charity income - derived from exp"
+	label variable surplus "Charity made a surplus between (not necessarily consecutive) years"
+	label variable loss "Charity made a loss between (not necessarily consecutive) years"
+	label variable breakeven "Charity broke even between (not necessarily consecutive) years"
+
+	notes: Dataset contains observations from 2003 - 2017 inclusive.
+
+save $path1\ew_financialhistory_may2018_v1.dta, replace	
 	
 	
 /* Charitable purposes classification dataset */
@@ -178,21 +331,18 @@ codebook *, compact
 	duplicates list
 	
 	duplicates report regno // Huge number of duplicate charity numbers, which is probably accounted for by a charity having more than one purpose.
-	*duplicates list regno
 
-		
 	codebook regno
 	list regno in 1/1000
 	notes: use regno for linking with other datasets containing charity numbers
 
-	
 	codebook class
 	tab class
 	rename class classno // To match the class reference dataset
 	
 	sort classno
 	
-sav $path1\ew_class_apr2018_v1.dta, replace
+sav $path1\ew_class_may2018_v1.dta, replace
 
 
 /* Charitable purposes classification reference dataset */
@@ -212,7 +362,7 @@ codebook *, compact
 	codebook classtext
 	tab classtext
 	
-sav $path1\ew_class_ref_apr2018.dta, replace
+sav $path1\ew_class_ref_may2018.dta, replace
 
 	
 /* extract_main_charity dataset */
@@ -222,6 +372,7 @@ count
 desc, f
 notes
 codebook *, compact
+label data "One observation for every main registered charity (no subsidiaries)"
 **codebook *, problems
 
 /*
@@ -325,7 +476,7 @@ codebook *, compact
 	
 	sort regno
 	
-sav $path1\ew_mcdataset_apr2018_v1.dta, replace	
+sav $path1\ew_mcdataset_may2018_v1.dta, replace	
 	
 	
 /* extract_registration dataset */	
@@ -400,7 +551,7 @@ codebook *, compact
 	
 	sort remcode
 	
-sav $path1\ew_rem_apr2018_v1.dta, replace
+sav $path1\ew_rem_may2018_v1.dta, replace
 
 
 /* extract_remove_ref dataset */	
@@ -420,7 +571,7 @@ codebook *, compact
 	
 	sort remcode
 	
-sav $path1\ew_rem_ref_apr2018.dta, replace
+sav $path1\ew_rem_ref_may2018.dta, replace
 
 
 /* extract_trustee dataset */
@@ -443,10 +594,8 @@ codebook *, compact
 	duplicates list
 	duplicates drop
 	
-	
 	codebook regno
 	sort regno
-	
 	
 	codebook trustee
 	list trustee in 1/1000 // We don't need the names, just a count of trustees per charity.
@@ -454,8 +603,13 @@ codebook *, compact
 	sum trustees
 	
 	drop trustee
+	
+	sort regno
+	list in 1/500
+	duplicates report regno
+	duplicates drop regno, force
 
-sav $path1\ew_trustees_apr1018.dta, replace
+sav $path1\ew_trustees_may1018.dta, replace
 
 
 /* extract_acct_submit dataset */
@@ -478,6 +632,9 @@ codebook *, compact
 	
 	duplicates report regno
 	duplicates list regno
+	
+	duplicates report regno fyend
+	
 		
 	duplicates report regno submit_date
 	duplicates list regno submit_date // I cannot see why a charity should submit more than one set of accounts on the same day.
@@ -517,7 +674,7 @@ codebook *, compact
 	
 	sort regno arsubyr
 	
-sav $path1\ew_acctsub_apr2018_v1.dta, replace
+sav $path1\ew_acctsub_may2018_v1.dta, replace
 
 
 /* extract_aoo_ref dataset */
@@ -551,7 +708,7 @@ codebook *, compact
 	
 	sort aootype aookey
 	
-sav $path1\ew_aoo_ref_apr2018.dta, replace
+sav $path1\ew_aoo_ref_may2018.dta, replace
 
 
 /* extract_charity_aoo dataset */
@@ -606,31 +763,68 @@ codebook *, compact
 	
 	sort aootype aookey
 		
-sav $path1\ew_aoo_apr2018_v1.dta, replace
+sav $path1\ew_aoo_may2018_v1.dta, replace
 
 
 	
 	
 /* Merge supplementary datasets with Charity Register */	
+
+	// Prep financial history dataset
 	
-	// Merge class datasets
+	use $path1\ew_financialhistory_may2018_v1.dta, clear
+	desc, f 
 	
-	use $path1\ew_class_apr2018_v1.dta, clear
-	
-	merge m:1 classno using $path1\ew_class_ref_apr2018.dta, keep(match master using)
-	tab _merge
-	drop _merge
+	keep if year==latest_repyr
+	keep regno income expend year charitysize
 	
 	sort regno
 	
-	sav $path1\ew_class_apr2018.dta, replace
+	save $path1\ew_financialhistory_merge.dta, replace
+	
+	// Merge class datasets
+	
+	use $path1\ew_class_may2018_v1.dta, clear
+	
+	label data "Classification details"
+	
+	merge m:1 classno using $path1\ew_class_ref_may2018.dta, keep(match master using)
+	tab _merge
+	drop _merge
+	
+		/*
+		// Reshape to wide panel
+		
+		drop classno
+		sort regno
+		list in 1/1000
+		
+		bysort regno: gen obs = _n
+		list in 1/1000
+		
+		xtset regno obs
+		
+		reshape wide classtext, i(regno) j(obs)
+		desc, f
+		
+		foreach var of varlist classtext1-classtext34 {
+			levelsof `var'
+			tab1 `var'
+		}
+		/*
+			I'll need to do something similar to my beneficary groups count in my PhD.
+		*/
+	*/
+	sort regno
+	
+	sav $path1\ew_class_may2018.dta, replace
 	
 	
 	// Merge aoo datasets
 	
-	use $path1\ew_aoo_apr2018_v1.dta, clear
+	use $path1\ew_aoo_may2018_v1.dta, clear
 	
-	merge m:1 aootype aookey using $path1\ew_aoo_ref_apr2018.dta, keep(match master using)
+	merge m:1 aootype aookey using $path1\ew_aoo_ref_may2018.dta, keep(match master using)
 	tab _merge
 	drop _merge
 	
@@ -649,14 +843,19 @@ sav $path1\ew_aoo_apr2018_v1.dta, replace
 	tab aootype
 	drop str_aootype
 	
-	sav $path1\ew_aoo_apr2018.dta, replace
+	duplicates report regno
+	duplicates drop regno, force
+	
+	sort regno
+	
+	sav $path1\ew_aoo_may2018.dta, replace
 	
 	
 	// Merge rem datasets
 	
-	use $path1\ew_rem_apr2018_v1.dta, clear
+	use $path1\ew_rem_may2018_v1.dta, clear
 	
-	merge m:1 remcode using $path1\ew_rem_ref_apr2018.dta, keep(match master using)
+	merge m:1 remcode using $path1\ew_rem_ref_may2018.dta, keep(match master using)
 	tab _merge
 	drop _merge
 	
@@ -672,9 +871,96 @@ sav $path1\ew_aoo_apr2018_v1.dta, replace
 	notes: Only use two categories of removed_reason to measure demise/closure: CEASED TO EXIST (3) and DOES NOT OPERATE (4).
 	
 	sort regno
+		
+	duplicates report regno
+	duplicates tag regno, gen(dupregno)
+	list regno regy remy if dupregno!=0
+	/*
+		There may be something interesting going on here: charities with the same number have different registration dates, which in many cases
+		seems to be because one observation has a registration and removal year, while the other just has a registration date.
+		
+		Look for one of these charities online. There could be duplicates due to charities changing legal form, which I think causes a new
+		charity number of be issued on the Public Register but not in this dataset.
+	*/
 	
-	sav $path1\ew_rem_apr2018.dta, replace
+	drop if dupregno!=0 & remy!=.
+	drop dupregno
+	count
 	
+		list if regno==1161889
+		
+	duplicates report regno	
+	duplicates drop regno, force
+	/*
+		Revisit this issue at a later date.
+	*/
+	
+	sav $path1\ew_rem_may2018.dta, replace
+	
+	
+	// Merge the supplementary datasets with the charity register
+	
+	use $path1\ew_charityregister_may2018_v1.dta, clear
+	
+	merge 1:1 regno using $path1\ew_rem_may2018.dta, keep(match master using) // Registration information
+	tab _merge
+	rename _merge rem_merge
+	
+	merge 1:1 regno using $path1\ew_aoo_may2018.dta, keep(match master using) // Area of operation information
+	tab _merge
+	rename _merge aoo_merge
+	drop if aoo_merge==2
+	
+	merge 1:1 regno using $path1\ew_trustees_may1018.dta, keep(match master using) // Trustees information
+	tab _merge
+	rename _merge trustee_merge
+	drop if trustee_merge==2
+	
+	merge 1:1 regno using $path1\ew_financialhistory_merge.dta, keep(match master using) // Latest financial information
+	tab _merge
+	rename _merge fin_merge
+	drop if fin_merge==2
+	bysort fin_merge: tab charitystatus // We didn't get any financial information for removed charities
+	
+	
+/* Final data management */
+
+	/* Charity age */
+	
+	capture drop charityage
+	gen charityage = year - regy if charitystatus==1
+	replace charityage = remy - regy if charitystatus==2
+	list regno regy remy year charityage in 1/500
+	list regno regy remy year charityage if charitystatus==1 & year!=.
+	
+	/* Create dependent variables */
+	
+	// Removed
+	
+	capture drop dereg
+	gen dereg = charitystatus
+	recode dereg 1=0 2=1
+	tab dereg charitystatus
+	label variable dereg "Organisation no longer registered as a charity"
+	
+	// Multinomial measure of removed reason
+	
+	capture drop depvar
+	gen depvar = .
+	replace depvar = 0 if charitystatus==1
+	replace depvar = 1 if removed_reason==3 | removed_reason==11
+	replace depvar = 2 if removed_reason!=3 & removed_reason!=11 & removed_reason!=.
+	tab depvar
+	tab removed_reason depvar
+	tab depvar charitystatus
+	label define rem_label 0 "Active" 1 "Vol Removal" 2 "Other Removal"
+	label values depvar rem_label
+	label variable depvar "Indicates whether a charity has been de-registered and for what reason"
+
+
+compress
+		
+sav $path3\ew_charityregister_20180522.dta, replace
 	
 	
 	/* Empty working data folder */
@@ -683,7 +969,7 @@ sav $path1\ew_aoo_apr2018_v1.dta, replace
 	
 	pwd
 	
-	local workdir "C:\Users\mcdonndz-local\Desktop\data\paper-istr-2018\data_working\"
+	local workdir "C:\Users\mcdonndz-local\Dropbox\paper-istr-2018\data_working\"
 	cd `workdir'
 	
 	local datafiles: dir "`workdir'" files "*.dta"

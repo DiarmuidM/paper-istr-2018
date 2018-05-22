@@ -24,8 +24,6 @@ exit
 
 /* Define paths */
 
-/* Define paths */
-
 include "C:\Users\mcdonndz-local\Desktop\github\paper-istr-2018\syntax\project_paths.doi"
 di "$path1"
 di "$path2"
@@ -66,218 +64,278 @@ di "$path8"
 capture log close
 **log using $path9\rqone_`tdate'.log, text replace
 
-/* Australia */
 
-use $path3\aus_annret_2014-16.dta, clear
-capture datasignature report
-count
+/* Canada */
+
+use $path3\canada_register_20180522.dta, clear	
 desc, f
+count
 notes
+label data "Register of all Canadian charities - 20180522"
 
-	/* Create dependent variables */
 	
-	// Removed
+	// Descriptive statistics
 	
-	capture drop dremoved
-	gen dremoved = charitystatus
-	recode dremoved 1=0 2 3=1
-	tab dremoved charitystatus
-	label variable dremoved "Organisation no longer registered as a charity"
+	tab1 sector charitytype area
 	
-	// Multinomial measure of removed reason
-	
-	capture drop removed
-	gen removed = .
-	replace removed = 0 if charitystatus==1
-	replace removed = 1 if charitystatus==2
-	replace removed = 2 if charitystatus==3
-	tab removed
-	tab charitystatus removed
-	tab removed charitystatus
-	label define rem_label 0 "Active" 1 "Failed" 2 "Vol Removal"
-	label values removed rem_label
-	label variable removed "Indicates whether a charity has been de-registered and for what reason"
-	
-	
-	/* Create independent variables */
-	
-	// Company legal form
-	/*
-		Not possible using Australia data.
-	*/
-	
-	codebook sector charsize international, compact
-	tab1 sector charsize international
+	local fdate = "22may2018"
 
-
-		
-**********************************************************************************************************************************
+	graph bar , over(depvar) over(sector) stack asyvar percent ylabel(, nogrid labsize(small))
+	graph bar , over(depvar) over(charitytype) stack asyvar percent ylabel(, nogrid labsize(small))
+	graph bar , over(depvar) over(area) stack asyvar percent ylabel(, nogrid labsize(small))
 	
-	
-**********************************************************************************************************************************	
-	
-		
-	/* 3. Regression analysis */
-	
-	/*
-		Regression models for our two survival-related dependent variables: charityage (of removed charities) and removed multinomial variable.
-		Independent variables: icnpo_ncvo_category period aob_classified charitysize company charityage (for removed).
-	*/
-	
-	// Multinomial logistic regression of whether a charity is removed
-					
-	mdesc sector charsize international
-	/*
-		A quarter of the sample has missing data for charityage (24%).
-	*/
-		
-	// Create a variable that identifies cases with no missing values for independent variables
-			
-	capture drop nomiss_model
-	gen nomiss_model = 1
-	replace nomiss_model = 0 if missing(sector) | missing(charsize) | missing(international)
-	tab nomiss_model // 1,878 observations with no missing data for all of the independent variables.
-	keep if nomiss_model==1
-			
-	// Create a variable that captures the baseline odds in a logit model - must be used in conjunction with noconstant option
-			
-	capture drop baseline
-	gen baseline = 1
-	/*
-		I can see `baseline' only being useful if there are few explanatory variables with not many categories.
-	*/
-			
-	
-	/* Descriptive statistics */
-	
-	/* 2. Descriptive statistics */
-	
-	/* Sample description */
-	/*
-		Overall statistics for our independent variables.
-	*/
-		
-	
-	tab removed
-	
-	tab1 sector charsize international
-
-	local fdate = "25apr2018"
-
-	graph hbar if removed > 0, over(removed) over(sector) stack asyvar percent
-	graph bar if removed > 0, over(removed) over(charsize) stack asyvar percent
-	graph bar if removed > 0, over(removed) over(international) stack asyvar percent
-	
-	tab aryear removed
+	tab statyear depvar if statyear>=2007
 	local numobs:di %6.0fc r(N)
+	
+	tab depvar if depvar>0 & statyear>=2007 // 62.5% is the average number of vol removals in a given year.
 		
-	graph bar if removed > 0, over(removed) over(aryear) stack asyvar percent ///
+	graph bar if statyear>=2007 & depvar!=0, over(depvar) over(statyear) stack asyvar percent ///
 		bar(1, color(maroon )) bar(2, color(dknavy)) bar(3, color(erose)) ///
 		ylabel(, nogrid labsize(small)) ///
 		ytitle("% of charities", size(medsmall)) ///
-		title("Charity Removal Reasons - Australia")  ///
-		subtitle("by annual return year")  ///
-		note("Source: Charity Commission Register of Charities (31/12/2016);  n=`numobs'. Produced: $S_DATE.", size(vsmall) span) ///
+		yline(37, lpatt(dash) lcolor(gs8)) ///
+		title("Charity Removal Reasons - Canada")  ///
+		subtitle("by removal year")  ///
+		note("Source: Canada Revenue Agency (22/05/2018);  n=`numobs'. Produced: $S_DATE.", size(vsmall) span) ///
 		scheme(s1color)
 
-	graph export $path6\aus_removedreason_`fdate'.png, replace width(4096)
+	graph export $path6\can_removedreason_`fdate'.png, replace width(4096)
+
+
+	**bysort depvar: sum revenue
+	**bysort depvar: sum expenditure
+		
+			
+	/* Bivariate associations between dependent and each independent variable */
+		
+	foreach var of varlist sector charitytype area {
+		tab `var' depvar, col nofreq all
+	}
+	/*
+		No associations!
+	*/
 		
 	
 	/* Model building */
-
+	
+	/*
+		Test a number of different estimators: linear, logit, glm.
+	*/
+	
 	// Decide on reference categories
 	
-	tab1 sector charitysize_ais2016 international
+	tab1 sector charitytype area
 	/*
-		The base category for sector is 6, charitysize_ais2016 is 3.
+		sector==4, charitytype==3, area==1.
+		
+		For all three variables the most common category was chosen as the reference category.
 	*/
 	
 	// Model 1 - null model
 		
-	mlogit removed
+	mlogit depvar
 	est store null
 		
 	// Model 2 - main effects
 			
-	regress removed sector charitysize_ais2016 international, robust
+	regress depvar ib4.sector ib3.charitytype ib1.area, robust
 	est store linr
 	fitstat
 			
-	tab removed
+	tab depvar
 	
-	mlogit removed ib6.sector ib3.charitysize_ais2016 i.international, vce(robust) nolog
+	mlogit depvar ib4.sector ib3.charitytype ib1.area, vce(robust) nolog rrr
+	est store logr
+	fitstat
+	ereturn list
+	
+	
+/* England & Wales */
+
+use $path3\ew_charityregister_20180522.dta, clear // Data downloaded from Charity Commission data portal
+desc, f
+count
+notes
+label data "Register of all England & Wales charities - 20180522"
+
+	
+	// Descriptive statistics
+	
+	tab1 charitysize aootype
+	
+	local fdate = "22may2018"
+
+	graph bar , over(depvar) over(charitysize) stack asyvar percent ylabel(, nogrid labsize(small))
+	graph bar , over(depvar) over(aootype) stack asyvar percent ylabel(, nogrid labsize(small))
+	
+	tab remy depvar if remy>=2007
+	local numobs:di %6.0fc r(N)
+	
+	tab depvar if depvar>0 & remy>=2007 // 50% is the average number of vol removals in a given year.
+		
+	graph bar if remy>=2007 & depvar!=0, over(depvar) over(remy) stack asyvar percent ///
+		bar(1, color(maroon )) bar(2, color(dknavy)) bar(3, color(erose)) ///
+		ylabel(, nogrid labsize(small)) ///
+		ytitle("% of charities", size(medsmall)) ///
+		yline(50, lpatt(dash) lcolor(gs8)) ///
+		title("Charity Removal Reasons - UK")  ///
+		subtitle("by removal year")  ///
+		note("Source: Charity Commission for England & Wales (22/05/2018);  n=`numobs'. Produced: $S_DATE.", size(vsmall) span) ///
+		scheme(s1color)
+
+	graph export $path6\ew_removedreason_`fdate'.png, replace width(4096)
+
+
+	**bysort depvar: sum revenue
+	**bysort depvar: sum expenditure
+		
+			
+	/* Bivariate associations between dependent and each independent variable */
+		
+	foreach var of varlist charitysize aootype {
+		tab `var' depvar, col nofreq all
+	}
+	/*
+		No associations!
+	*/
+		
+	
+	/* Model building */
+	
+	/*
+		Test a number of different estimators: linear, logit, glm.
+	*/
+	
+	// Decide on reference categories
+	
+	tab1 charitysize aootype
+	/*
+		charitysize==2, aootype==2.
+		
+		For all three variables the most common category was chosen as the reference category.
+	*/
+	
+	// Model 1 - null model
+		
+	mlogit depvar
+	est store null
+		
+	// Model 2 - main effects
+			
+	regress depvar ib2.aootype charityage, robust
+	est store linr
+	fitstat
+			
+	tab depvar
+	
+	mlogit depvar ib2.aootype charityage, vce(robust) nolog rrr
 	est store logr
 	fitstat
 	ereturn list
 
 	
-	*est save $path3\uk_removed_mlogit_20180419, replace
-	*est use $path3\uk_removed_mlogit_20180419.ster
-
-		/*
-		// Save results in a matrix and then as variables
-		/*
-			There is an issue with the zero for the first variable in the model.
-		*/
-		*preserve
-		
-			matrix effect=e(b)
-			*matrix variance=e(V)
-			*matrix outcome=e(out)
-			*scalar r2=e(r2_p)	
-			
-			clear 
-			
-			svmat effect, names(beta)
-			*svmat variance, names(varian)
-			*svmat outcome, names(out)
-			
-			list beta1
-			l beta*
-			
-			drop beta1-beta34 // Drop first 35 variables as they are the values for the base outcome i.e. "Active".
-			drop if missing(beta35-beta140) // Drop observations with missing data for the coefficient variables.
-			l
-			
-			expand 3 // Create two extra rows for the other outcomes: vol removal and other removal.
-			/*
-				The first 35 variables correspond to the coeffients for the first outcome; the next 35 to the second outcome, and the final
-				35 to the thrid outcome.
-			*/
-			
-			forvalues i = 2(1)3 {
-				forvalues num = 36(1)70 {
-					local nextnum = `num' + 35*(`i'-1)
-					replace beta`num' = beta`nextnum' if _n==`i'
-				}
-			}
-			
-			gen dataset = "UK"
-			gen outcome = "Failed" if _n==1
-			replace outcome = "Voluntary Removal" if _n==2
-			replace outcome = "Other Removal" if _n==3
-			tab outcome
-			l			
-			
-			// rename variables and drop unnecessary ones
-			
-			drop beta71-beta140
-			/*
-			local varlist = "" 
-			
-			foreach var in beta36-beta70 {
-				rename `var' 
-			
-			rename beta36 Cultureandrecreation
-			*/
-			
-			// Graph results
-			
-			twoway (line 
-			
-		*/	
-			
 	
-			
+		/* Alternative source of data - NCVO Register of Charities */
 		
-		/* See regression diagnostics from Leverhulme and Notif Events projects */
+		use $path3\ncvo_charitydata_analysis_20171211.dta, clear
+		capture datasignature report
+		count
+		desc, f
+		notes
+		
+		/* Create dependent variables */
+
+		// Removed
+		
+		capture drop dereg
+		gen dereg = charitystatus
+		recode dereg 1=0 2=1
+		tab dereg charitystatus
+		label variable dereg "Organisation no longer registered as a charity"
+		
+		// Multinomial measure of removed reason
+		
+		capture drop depvar
+		gen depvar = .
+		replace depvar = 0 if charitystatus==1
+		replace depvar = 1 if removed_reason==3 | removed_reason==11
+		replace depvar = 2 if removed_reason!=3 & removed_reason!=11 & removed_reason!=.
+		tab depvar
+		tab removed_reason depvar
+		tab depvar charitystatus
+		label define rem_label 0 "Active" 1 "Vol Removal" 2 "Other Removal"
+		label values depvar rem_label
+		label variable depvar "Indicates whether a charity has been de-registered and for what reason"
+
+		/* Create independent variables */
+		
+		// Company legal form
+		
+		capture drop company
+		list coyno if coyno!="" in 1/1000
+		**destring coyno, replace
+		gen company = (coyno!="")
+		tab company
+		/*
+			coyno needs a lot more work: i.e. check for duplicates, non-numeric characters, same as regno etc.
+		*/
+		
+		codebook icnpo_ncvo_category company period aob_classified charityage charitysize, compact
+		tab icnpo_ncvo_category, nolab
+		encode aob_classified, gen(areaop)
+		recode areaop 3 4=3
+		tab areaop
+
+		tab remy depvar if remy>=2007
+		local numobs:di %6.0fc r(N)
+		
+		tab depvar if depvar>0 & remy>=2007 // 50% is the average number of vol removals in a given year.
+		
+		local fdate = "22may2018"
+
+		graph bar if remy>=2007 & depvar!=0, over(depvar) over(remy) stack asyvar percent ///
+			bar(1, color(maroon )) bar(2, color(dknavy)) bar(3, color(erose)) ///
+			ylabel(, nogrid labsize(small)) ///
+			ytitle("% of charities", size(medsmall)) ///
+			yline(71, lpatt(dash) lcolor(gs8)) ///
+			title("Charity Removal Reasons - UK")  ///
+			subtitle("by removal year")  ///
+			note("Source: Charity Commission for England & Wales (31/12/2016);  n=`numobs'. Produced: $S_DATE.", size(vsmall) span) ///
+			scheme(s1color)
+
+		graph export $path6\ew_removedreason_alt_`fdate'.png, replace width(4096)
+		
+			
+		/* Model building */
+	
+		/*
+			Test a number of different estimators: linear, logit, glm.
+		*/
+		
+		// Decide on reference categories
+		
+		**tab1 charitysize aootype
+		/*
+			charitysize==2, aootype==2.
+			
+			For all three variables the most common category was chosen as the reference category.
+		*/
+		
+		// Model 1 - null model
+			
+		mlogit depvar
+		est store null
+			
+		// Model 2 - main effects
+				
+		regress depvar ib17.icnpo i.company ib1.areaop ib2.charitysize charityage, robust
+		est store linr
+		fitstat
+				
+		tab depvar
+		
+		mlogit depvar ib17.icnpo i.company ib1.areaop ib2.charitysize charityage, vce(robust) nolog rrr
+		est store logr
+		fitstat
+		ereturn list
+

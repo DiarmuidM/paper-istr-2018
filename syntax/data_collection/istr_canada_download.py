@@ -22,7 +22,7 @@ from downloaddate_function import downloaddate
 ddate = downloaddate()
 
 projpath = 'C:/Users/mcdonndz-local/Desktop/github/paper-istr-2018/'
-datapath = 'C:/Users/mcdonndz-local/Desktop/data/paper-istr-2018/data_raw/'
+datapath = 'C:/Users/mcdonndz-local/Dropbox/paper-istr-2018/data_raw/'
 
 print(projpath)
 print(datapath)
