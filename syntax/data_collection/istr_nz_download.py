@@ -176,7 +176,7 @@ for data in search_big:
 logfile.close()
 print('*** All done!')
 
-'''
+
 ########################################################################################################
 
 										# Perform diagnostics #
@@ -200,10 +200,10 @@ print('                                             ')
 print('---------------------------------------------')
 print('                                             ')
 sleep(10)
-
+'''
 # Code area of operations variable
 
-import istr_nz_codeareas # ERROR in line 9 of this script
+import istr_nz_codeareas # ERROR in this script
 print('istr_nz_codeareas.py')
 print('                                             ')
 print('---------------------------------------------')

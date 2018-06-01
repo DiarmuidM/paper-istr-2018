@@ -132,7 +132,7 @@ drop v13
 	gen depvar = status
 	recode depvar 2=0 1 3 4=1 6=2 5=3
 	tab depvar
-	label define depvar_label 0 "Active" 1 "Failed" 2 "Vol Removal" 3 "Other Removal"
+	label define depvar_label 0 "Active" 1 "Failed" 2 "Vol Dissolution" 3 "Other Removal"
 	label values depvar depvar_label
 	label variable depvar "Indicates whether a charity has been de-registered and for what reason"
 

@@ -77,8 +77,9 @@ label data "Register of all Canadian charities - 20180522"
 	// Descriptive statistics
 	
 	tab1 sector charitytype area
+	tab depvar
 	
-	local fdate = "22may2018"
+	local fdate = "01jun2018"
 
 	graph bar , over(depvar) over(sector) stack asyvar percent ylabel(, nogrid labsize(small))
 	graph bar , over(depvar) over(charitytype) stack asyvar percent ylabel(, nogrid labsize(small))
@@ -162,8 +163,9 @@ label data "Register of all England & Wales charities - 20180522"
 	// Descriptive statistics
 	
 	tab1 charitysize aootype
+	tab depvar
 	
-	local fdate = "22may2018"
+	local fdate = "01jun2018"
 
 	graph bar , over(depvar) over(charitysize) stack asyvar percent ylabel(, nogrid labsize(small))
 	graph bar , over(depvar) over(aootype) stack asyvar percent ylabel(, nogrid labsize(small))
@@ -174,7 +176,7 @@ label data "Register of all England & Wales charities - 20180522"
 	tab depvar if depvar>0 & remy>=2007 // 50% is the average number of vol removals in a given year.
 		
 	graph bar if remy>=2007 & depvar!=0, over(depvar) over(remy) stack asyvar percent ///
-		bar(1, color(maroon )) bar(2, color(dknavy)) bar(3, color(erose)) ///
+		bar(1, color(dknavy )) bar(2, color(erose)) ///
 		ylabel(, nogrid labsize(small)) ///
 		ytitle("% of charities", size(medsmall)) ///
 		yline(50, lpatt(dash) lcolor(gs8)) ///

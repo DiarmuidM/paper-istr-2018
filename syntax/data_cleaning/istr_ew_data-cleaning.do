@@ -944,6 +944,10 @@ sav $path1\ew_aoo_may2018_v1.dta, replace
 	label variable dereg "Organisation no longer registered as a charity"
 	
 	// Multinomial measure of removed reason
+	/*
+		Voluntary dissolution is not comparable (yet) between the three jurisidictions:
+		- Canada includes mergers and amalgamations, the others do not.
+	*/
 	
 	capture drop depvar
 	gen depvar = .
@@ -953,7 +957,7 @@ sav $path1\ew_aoo_may2018_v1.dta, replace
 	tab depvar
 	tab removed_reason depvar
 	tab depvar charitystatus
-	label define rem_label 0 "Active" 1 "Vol Removal" 2 "Other Removal"
+	label define rem_label 0 "Active" 1 "Vol Dissolution" 2 "Other Removal"
 	label values depvar rem_label
 	label variable depvar "Indicates whether a charity has been de-registered and for what reason"
 
