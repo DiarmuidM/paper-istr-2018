@@ -952,12 +952,12 @@ sav $path1\ew_aoo_may2018_v1.dta, replace
 	capture drop depvar
 	gen depvar = .
 	replace depvar = 0 if charitystatus==1
-	replace depvar = 1 if removed_reason==3 | removed_reason==11
-	replace depvar = 2 if removed_reason!=3 & removed_reason!=11 & removed_reason!=.
+	replace depvar = 1 if removed_reason==3 | removed_reason==4
+	replace depvar = 2 if removed_reason!=3 & removed_reason!=4 & removed_reason!=.
 	tab depvar
 	tab removed_reason depvar
 	tab depvar charitystatus
-	label define rem_label 0 "Active" 1 "Vol Dissolution" 2 "Other Removal"
+	label define rem_label 0 "Registered" 1 "Vol Dissolution" 2 "Other Dereg"
 	label values depvar rem_label
 	label variable depvar "Indicates whether a charity has been de-registered and for what reason"
 

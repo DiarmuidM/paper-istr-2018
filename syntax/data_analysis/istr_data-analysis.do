@@ -78,6 +78,7 @@ label data "Register of all Canadian charities - 20180522"
 	
 	tab1 sector charitytype area
 	tab depvar
+	tab remy depvar if remy>=2007 // Produce a table
 	
 	local fdate = "01jun2018"
 
@@ -96,7 +97,7 @@ label data "Register of all Canadian charities - 20180522"
 		ytitle("% of charities", size(medsmall)) ///
 		yline(37, lpatt(dash) lcolor(gs8)) ///
 		title("Charity Removal Reasons - Canada")  ///
-		subtitle("by removal year")  ///
+		subtitle("by deregistration year")  ///
 		note("Source: Canada Revenue Agency (22/05/2018);  n=`numobs'. Produced: $S_DATE.", size(vsmall) span) ///
 		scheme(s1color)
 
@@ -164,6 +165,14 @@ label data "Register of all England & Wales charities - 20180522"
 	
 	tab1 charitysize aootype
 	tab depvar
+	tab remy depvar if remy>=2007 // Produce a table
+	/*
+		What's going in 2009 with Other Removal?
+	*/	
+	
+		tab removed_reason if remy==2007
+		tab removed_reason if remy==2008
+		tab removed_reason if remy==2009 // Accounted for by the large spike in voluntary deregistrations
 	
 	local fdate = "01jun2018"
 
@@ -181,7 +190,7 @@ label data "Register of all England & Wales charities - 20180522"
 		ytitle("% of charities", size(medsmall)) ///
 		yline(50, lpatt(dash) lcolor(gs8)) ///
 		title("Charity Removal Reasons - UK")  ///
-		subtitle("by removal year")  ///
+		subtitle("by deregistration year")  ///
 		note("Source: Charity Commission for England & Wales (22/05/2018);  n=`numobs'. Produced: $S_DATE.", size(vsmall) span) ///
 		scheme(s1color)
 
