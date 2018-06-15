@@ -17,3 +17,4 @@ To do list (updated 25/04/2018):
 - Decide what to do with subsidiaries in the England & Wales data (we currently drop them from the dataset).
 - See if additional information for England & Wales charites can be gleaned from charitybase API. [DONE - NO ADDITIONAL INFO]
 - Use OpenRefine to collapse the categories of the reference lists in the New Zealand data (e.g. Source of Funds).
+- Look at spike in voluntary removals in England & Wales in 2009 - may be due to change in the registration threshold (could be a nice sub-analysis).
