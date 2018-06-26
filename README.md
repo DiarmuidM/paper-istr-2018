@@ -10,11 +10,12 @@ Encouraged by ‘open data’ movements, regulators have made it increasingly st
 ## Repository
 
 This repository hosts syntax and other files needed to produce our ISTR 2018 paper: 'Mission Accomplished? A Cross-national Examination of Charity Dissolution'. It contains the following folders:
-* **documents** - contains our ISTR panel proposal 
-* **figures** - contains graphs and figures 
-* **findings** - contains our ISTR panel proposal 
-* **documents** - contains our ISTR panel proposal 
-* **documents** - contains our ISTR panel proposal 
+* **paper** - contains our ISTR panel paper 
+* **presentations** - contains our ISTR panel presentation 
+* **syntax** - contains our data collection, cleaning and analysis scripts: 
+    * *data_collection* - contains country-level Python and Stata scripts 
+    * *data_cleaning* - contains country-level Stata scripts  
+    * *data_analysis* - contains a single Stata script
 
 ## Pre-requisites
 
