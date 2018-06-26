@@ -9,9 +9,12 @@ Encouraged by ‘open data’ movements, regulators have made it increasingly st
 
 ## Repository
 
-This repository hosts syntax, findings and other files needed to produce our ISTR 2018 paper: 'Mission Accomplished? A Cross-national Examination of Charity De-registration'.
-
-
+This repository hosts syntax and other files needed to produce our ISTR 2018 paper: 'Mission Accomplished? A Cross-national Examination of Charity Dissolution'. It contains the following folders:
+* **documents** - contains our ISTR panel proposal 
+* **figures** - contains graphs and figures 
+* **findings** - contains our ISTR panel proposal 
+* **documents** - contains our ISTR panel proposal 
+* **documents** - contains our ISTR panel proposal 
 
 ## Pre-requisites
 
@@ -22,4 +25,4 @@ We recommended using [Sublime Text](https://www.sublimetext.com/3) to write and 
 
 ## Final comments
 
-This repository is likely to be updated on a semi-regular basis. If you would like to collaborate on developing the repository further, or have an idea for a research project employing these datasets, then don't hesitate to get in [contact](d.mcdonnell.1@bham.ac.uk).
+This materials in this repository are free to use, adapt and share. The data collection, cleaning and analysis scripts are in "beta" phase, meaning they are not likely free of error and should continue to be tested by multiple users. This repository is likely to be updated on a semi-regular basis. If you would like to collaborate on developing the repository further, or have an idea for a research project employing these datasets, then don't hesitate to get in [contact](d.mcdonnell.1@bham.ac.uk).
