@@ -17,7 +17,7 @@ from time import sleep
 from datetime import datetime
 from downloaddate_function import downloaddate
 
-'''
+
 # Run the downloaddate function to get the date
 ddate = downloaddate()
 
@@ -196,24 +196,6 @@ sleep(10)
 
 import istr_nz_checkintegrity
 print('istr_nz_checkintegrity.py')
-print('                                             ')
-print('---------------------------------------------')
-print('                                             ')
-sleep(10)
-'''
-# Code area of operations variable
-
-import istr_nz_codeareas # ERROR in this script
-print('istr_nz_codeareas.py')
-print('                                             ')
-print('---------------------------------------------')
-print('                                             ')
-sleep(10)
-
-# Code deregistration variable
-
-import istr_nz_codederegistration
-print('istr_nz_codederegistration.py')
 print('                                             ')
 print('---------------------------------------------')
 print('                                             ')
